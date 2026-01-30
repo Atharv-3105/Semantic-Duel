@@ -1,0 +1,12 @@
+/bin/
+/build/
+*.exe
+*.exe~
+*.dll
+*.dylib
+*.test
+*.out
+.vscode/
+.DS_STORE
+*.json
+*.YAML
