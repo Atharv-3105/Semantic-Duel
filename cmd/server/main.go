@@ -4,10 +4,10 @@ import (
 	// "log"
 	"encoding/json"
 	"net/http"
-	"time"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	// "time"
 
@@ -17,6 +17,7 @@ import (
 	"github.com/Atharv-3105/Graph-Duel/internal/metrics"
 	"github.com/Atharv-3105/Graph-Duel/internal/room"
 	"github.com/Atharv-3105/Graph-Duel/internal/semantic"
+	"github.com/Atharv-3105/Graph-Duel/internal/target"
 	"github.com/Atharv-3105/Graph-Duel/internal/ws"
 )
 
@@ -26,9 +27,10 @@ func main() {
 	log := logger.New()
 	hub := ws.NewHub(log)
 	semanticClient := semantic.New(cfg().SemanticURL)
+	targetProvider := target.New(target.DefaultWords)
 	roomManager := room.NewManager(log)
 	cleanupCh := make(chan string, 16)
-	matchmaker := matchmaker.New(roomManager, log, semanticClient, cleanupCh, cfg().GameDuration, cfg().RateLimitSeconds)
+	matchmaker := matchmaker.New(roomManager, log, semanticClient, targetProvider,cleanupCh, cfg().GameDuration, cfg().RateLimitSeconds)
 
 	go hub.Run()
 

@@ -9,6 +9,7 @@ import (
 	"github.com/Atharv-3105/Graph-Duel/internal/logger"
 	"github.com/Atharv-3105/Graph-Duel/internal/room"
 	"github.com/Atharv-3105/Graph-Duel/internal/semantic"
+	"github.com/Atharv-3105/Graph-Duel/internal/target"
 	"github.com/Atharv-3105/Graph-Duel/internal/ws"
 )
 
@@ -19,18 +20,20 @@ type Matchmaker struct{
 	rm 		*room.Manager
 	log 	*logger.Logger
 	semantic *semantic.Client
+	targetProvider *target.Provider
 	cleanupCh chan<- string
 	gameDuration 	int 
 	rateLimitSeconds int 
 }
 
 
-func New(rm *room.Manager, log *logger.Logger, sc *semantic.Client, cleanupCh chan<- string, gameDuration int, rateLimitSeconds int,) *Matchmaker{
+func New(rm *room.Manager, log *logger.Logger, sc *semantic.Client, targetProvider *target.Provider,cleanupCh chan<- string, gameDuration int, rateLimitSeconds int,) *Matchmaker{
 	return &Matchmaker{
 		queue:	 make([]*ws.Client, 0),
 		rm:		 rm,
 		log:	log,
 		semantic: 	sc,
+		targetProvider: targetProvider,
 		cleanupCh: cleanupCh,
 		gameDuration: gameDuration,
 		rateLimitSeconds: rateLimitSeconds,
@@ -57,7 +60,8 @@ func (m *Matchmaker) Enqueue(client *ws.Client) {
 		}
 
 		room := room.NewRoom(roomID, p1, p2, m.semantic, onCleanup, m.gameDuration, m.rateLimitSeconds)
-		room.Start("FIRE")
+		targetWord := m.targetProvider.Random()
+		room.Start(targetWord)
 		m.rm.Add(room)
 		m.log.Info("[MATCH] room created", "room_id", roomID)
 	}
