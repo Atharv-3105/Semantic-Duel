@@ -1,7 +1,7 @@
-# Graph-Duel 
+# Semantic-Duel 
 **Real-time Multiplayer Semantic Word-Battle Backend**
 
-Graph-Duel is a production-grade, real-time multiplayer backend where two players compete by submitting words that are semantically related to a target word.  
+Semantic-Duel is a real-time multiplayer backend where two players compete by submitting words that are semantically related to a target word.  
 The server scores submissions using a lightweight ML service and enforces all game rules authoritatively.
 ---
 
