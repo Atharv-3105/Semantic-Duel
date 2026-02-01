@@ -14,9 +14,6 @@ The server scores submissions using a lightweight ML service and enforces all ga
 - Abuse prevention (rate limiting, validation)
 - Graceful disconnect handling
 - Automatic room cleanup and requeue
-- Config-driven runtime (no hardcoded values)
-- Observability via metrics and structured logs
-- Graceful shutdown on SIGINT / SIGTERM
 
 ---
 
