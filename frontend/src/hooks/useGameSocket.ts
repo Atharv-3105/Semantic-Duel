@@ -11,6 +11,7 @@ export function useGameSocket() {
     const [scores, setScores] = useState<Record<string, number>>({});
     const [winner, setWinner] = useState<string | null>(null);
     const [waitingMessage, setWaitingMessage] = useState<string | null>(null);
+    const [secondsLeft, setSecondsLeft] = useState<number>(0);
 
     useEffect(() => {
         const socket = new WebSocket("ws://localhost:8080/ws");
@@ -45,6 +46,7 @@ export function useGameSocket() {
                 setTarget(msg.payload.target);
                 setScores({});
                 setWinner(null);
+                setSecondsLeft(msg.payload.duration);
                 setPhase("IN_GAME");
                 break;
 
@@ -63,12 +65,38 @@ export function useGameSocket() {
         }
     }
 
+    function submitWord(word: string) {
+        if(!socketRef.current) return;
+        if(phase !== "IN_GAME") return;
+
+        socketRef.current.send(
+            JSON.stringify({
+                type:"WORD_SUBMIT",
+                payload: {word},
+            })
+        );
+    }
+
+    useEffect(() => {
+        if( phase !== "IN_GAME") return;
+
+        const timer = setInterval(() => {
+            setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [phase]);
+
     return {
         phase,
         target,
         scores,
         winner,
         waitingMessage,
-        scoket: socketRef,
+        secondsLeft,
+        submitWord,
+        socket: socketRef,
     };
+
+    
 }

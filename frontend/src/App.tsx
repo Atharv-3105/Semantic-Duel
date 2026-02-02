@@ -1,34 +1,41 @@
-import {useEffect, useRef} from "react";
+// import {useEffect, useRef} from "react";
 import { useGameSocket } from "./hooks/useGameSocket";
+import { WaitingScreen } from "./components/WaitingScreen";
+import { GameHeader } from "./components/GameHeader";
 
 function App() {
-  const {phase, target, scores, winner, waitingMessage} = useGameSocket();
+  const {phase, target, scores, winner, waitingMessage, secondsLeft} = useGameSocket();
   // const socketRef  = useRef<WebSocket | null>(null);
 
   return (
-    <div style={{padding:"24px", fontFamily:"sans-serif"}}>
+    <div style={{padding:"32", fontFamily:"sans-serif", maxWidth: 600}}>
       <h1>Semantic-Duel</h1>
 
       <p><strong>Phase:</strong>{phase}</p>
 
-      {phase === "WAITING" && <p>{waitingMessage}</p>}
+      {phase === "WAITING" && (
+            <WaitingScreen message={waitingMessage} />
+      )}
 
-      {phase === "IN_GAME" && (
+      {phase === "IN_GAME" && target && (
         <>
-          <p><strong>Target:</strong>{target}</p>
+          <GameHeader target = {target} secondsLeft={secondsLeft} />
           <pre>{JSON.stringify(scores, null, 2)}</pre>
         </>
       )}
 
       {phase === "GAME_OVER" && (
         <>
+          <h2>Game Over</h2>
           <p><strong>Winner:</strong>{winner || "Tie"}</p>
           <pre>{JSON.stringify(scores, null, 2)}</pre>
         </>
       )}
 
 
-      {phase === "DISCONNECTED" && <p>Disconnected</p>}
+      {phase === "DISCONNECTED" && (
+          <p>Disconnected from server.</p>
+      )}
     </div>
   );
 }
