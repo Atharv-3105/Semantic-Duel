@@ -2,9 +2,13 @@
 import { useGameSocket } from "./hooks/useGameSocket";
 import { WaitingScreen } from "./components/WaitingScreen";
 import { GameHeader } from "./components/GameHeader";
+import { WordInput } from "./components/WordInput";
+import { Scoreboard } from "./components/Scoreboard";
+import { GameOverScreen } from "./components/GameOverScreen";
+import { DisconnectedScreen } from "./components/DisconnectedScreen";
 
 function App() {
-  const {phase, target, scores, winner, waitingMessage, secondsLeft} = useGameSocket();
+  const {phase, target, scores, winner, waitingMessage, secondsLeft, submitWord, reconnect, connected} = useGameSocket();
   // const socketRef  = useRef<WebSocket | null>(null);
 
   return (
@@ -12,6 +16,7 @@ function App() {
       <h1>Semantic-Duel</h1>
 
       <p><strong>Phase:</strong>{phase}</p>
+      <p style={{opacity: 0.6}}>Status: {connected ? "Connected" : "Disconnected"}</p>
 
       {phase === "WAITING" && (
             <WaitingScreen message={waitingMessage} />
@@ -20,21 +25,18 @@ function App() {
       {phase === "IN_GAME" && target && (
         <>
           <GameHeader target = {target} secondsLeft={secondsLeft} />
-          <pre>{JSON.stringify(scores, null, 2)}</pre>
+          <WordInput disabled = {!connected || phase !== "IN_GAME"} onSubmit={submitWord}/>
+          <Scoreboard scores = {scores} />
         </>
       )}
 
       {phase === "GAME_OVER" && (
-        <>
-          <h2>Game Over</h2>
-          <p><strong>Winner:</strong>{winner || "Tie"}</p>
-          <pre>{JSON.stringify(scores, null, 2)}</pre>
-        </>
+        <GameOverScreen winner = {winner} scores = {scores} />
       )}
 
 
       {phase === "DISCONNECTED" && (
-          <p>Disconnected from server.</p>
+          <DisconnectedScreen onReconnect={reconnect} />
       )}
     </div>
   );

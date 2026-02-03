@@ -12,6 +12,8 @@ export function useGameSocket() {
     const [winner, setWinner] = useState<string | null>(null);
     const [waitingMessage, setWaitingMessage] = useState<string | null>(null);
     const [secondsLeft, setSecondsLeft] = useState<number>(0);
+    const [connected, setConnected] = useState(false);
+
 
     useEffect(() => {
         const socket = new WebSocket("ws://localhost:8080/ws");
@@ -19,6 +21,7 @@ export function useGameSocket() {
 
         socket.onopen = () => {
             console.log("[WS] connected");
+            setConnected(true);
             setPhase("WAITING");
         };
 
@@ -29,6 +32,7 @@ export function useGameSocket() {
 
         socket.onclose = () => {
             console.log("[WS] disconnected");
+            setConnected(false);
             setPhase("DISCONNECTED");
         };
 
@@ -77,6 +81,30 @@ export function useGameSocket() {
         );
     }
 
+    //Reconnect function
+    function reconnect() {
+        if(socketRef.current) {
+            socketRef.current.close();
+        }
+
+        const socket = new WebSocket("ws://localhost:8080/ws");
+        socketRef.current = socket;
+
+        socket.onopen = () => {
+            setConnected(true);
+            setPhase("WAITING");
+        };
+
+        socket.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            handleServerMessage(msg);
+        };
+
+        socket.onclose = () => {
+            setConnected(false);
+            setPhase("DISCONNECTED");
+        };
+    }
     useEffect(() => {
         if( phase !== "IN_GAME") return;
 
@@ -95,6 +123,8 @@ export function useGameSocket() {
         waitingMessage,
         secondsLeft,
         submitWord,
+        connected,
+        reconnect,
         socket: socketRef,
     };
 
