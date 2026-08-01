@@ -24,7 +24,22 @@ func main() {
 	log := logger.New()
 
 	hub := ws.NewHub(log)
-	semanticClient := semantic.New(cfg.SemanticURL)
+
+	// Semantic similarity: use pre-computed local embeddings by default.
+	// Falls back to HTTP client only when SEMANTIC_SERVICE_URL is explicitly set.
+	var semanticClient semantic.Semantic
+	if cfg.SemanticURL != "" {
+		log.Println("[MAIN] using HTTP semantic client:", cfg.SemanticURL)
+		semanticClient = semantic.New(cfg.SemanticURL)
+	} else {
+		lc, err := semantic.NewLocal(cfg.VocabPath, cfg.EmbeddingsPath)
+		if err != nil {
+			log.Fatalf("[MAIN] failed to load embeddings: %v", err)
+		}
+		log.Printf("[MAIN] loaded local embeddings: %d words", lc.VocabSize())
+		semanticClient = lc
+	}
+
 	targetProvider := target.New(target.DefaultWords)
 	roomManager := room.NewManager(log)
 	cleanupCh := make(chan string, 16)
