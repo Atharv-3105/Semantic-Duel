@@ -2,45 +2,51 @@ package matchmaker
 
 import (
 	"fmt"
-	// "log"
 	"sync"
 	"time"
 
-	"github.com/Atharv-3105/Graph-Duel/internal/logger"
-	"github.com/Atharv-3105/Graph-Duel/internal/room"
-	"github.com/Atharv-3105/Graph-Duel/internal/semantic"
-	"github.com/Atharv-3105/Graph-Duel/internal/target"
-	"github.com/Atharv-3105/Graph-Duel/internal/ws"
+	"github.com/Atharv-3105/Semantic-Duel/internal/logger"
+	"github.com/Atharv-3105/Semantic-Duel/internal/room"
+	"github.com/Atharv-3105/Semantic-Duel/internal/semantic"
+	"github.com/Atharv-3105/Semantic-Duel/internal/target"
+	"github.com/Atharv-3105/Semantic-Duel/internal/ws"
 )
 
-
-type Matchmaker struct{
-	queue	[]*ws.Client
-	mu		sync.Mutex
-	rm 		*room.Manager
-	log 	*logger.Logger
-	semantic *semantic.Client
-	targetProvider *target.Provider
-	cleanupCh chan<- string
-	gameDuration 	int 
-	rateLimitSeconds int 
+type Matchmaker struct {
+	queue            []*ws.Client
+	mu               sync.Mutex
+	rm               *room.Manager
+	log              *logger.Logger
+	semantic         semantic.Semantic // interface — works with HTTP Client or LocalClient
+	targetProvider   *target.Provider
+	cleanupCh        chan<- string
+	gameDuration     int
+	rateLimitSeconds int
 }
 
-
-func New(rm *room.Manager, log *logger.Logger, sc *semantic.Client, targetProvider *target.Provider,cleanupCh chan<- string, gameDuration int, rateLimitSeconds int,) *Matchmaker{
+func New(
+	rm *room.Manager,
+	log *logger.Logger,
+	sc semantic.Semantic,
+	targetProvider *target.Provider,
+	cleanupCh chan<- string,
+	gameDuration int,
+	rateLimitSeconds int,
+) *Matchmaker {
 	return &Matchmaker{
-		queue:	 make([]*ws.Client, 0),
-		rm:		 rm,
-		log:	log,
-		semantic: 	sc,
-		targetProvider: targetProvider,
-		cleanupCh: cleanupCh,
-		gameDuration: gameDuration,
+		queue:            make([]*ws.Client, 0),
+		rm:               rm,
+		log:              log,
+		semantic:         sc,
+		targetProvider:   targetProvider,
+		cleanupCh:        cleanupCh,
+		gameDuration:     gameDuration,
 		rateLimitSeconds: rateLimitSeconds,
 	}
 }
 
-
+// Enqueue adds a client to the matchmaking queue.
+// If two players are waiting, they are immediately paired into a new room.
 func (m *Matchmaker) Enqueue(client *ws.Client) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -51,18 +57,20 @@ func (m *Matchmaker) Enqueue(client *ws.Client) {
 		p1 := m.queue[0]
 		p2 := m.queue[1]
 		m.queue = m.queue[2:]
-		m.log.Info("[MATCH] pairing players", "queue_size", len(m.queue))
+
+		m.log.Info("[MATCH] pairing players", "queue_remaining", len(m.queue))
 
 		roomID := fmt.Sprintf("room-%d", time.Now().UnixNano())
-		
-		onCleanup := func(roomID string) {
-			m.cleanupCh <- roomID
+
+		onCleanup := func(id string) {
+			m.cleanupCh <- id
 		}
 
-		room := room.NewRoom(roomID, p1, p2, m.semantic, onCleanup, m.gameDuration, m.rateLimitSeconds)
+		r := room.NewRoom(roomID, p1, p2, m.semantic, onCleanup, m.gameDuration, m.rateLimitSeconds)
 		targetWord := m.targetProvider.Random()
-		room.Start(targetWord)
-		m.rm.Add(room)
-		m.log.Info("[MATCH] room created", "room_id", roomID)
+		r.Start(targetWord)
+		m.rm.Add(r)
+
+		m.log.Info("[MATCH] room created", "room_id", roomID, "target", targetWord)
 	}
 }
