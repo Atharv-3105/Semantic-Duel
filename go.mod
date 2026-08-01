@@ -1,4 +1,4 @@
-module github.com/Atharv-3105/Graph-Duel
+module github.com/Atharv-3105/Semantic-Duel
 
 go 1.24.4
 
