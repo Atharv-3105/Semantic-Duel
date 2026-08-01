@@ -1,56 +1,53 @@
 package ws
 
 import (
-	// "log"
-
-	"github.com/Atharv-3105/Graph-Duel/internal/logger"
+	"github.com/Atharv-3105/Semantic-Duel/internal/logger"
+	"github.com/Atharv-3105/Semantic-Duel/internal/metrics"
 )
 
-//Hub will act as the Central-Brain of the WebSocket system
+// Hub is the central brain of the WebSocket system.
+// All client registration and deregistration flows through here in a single goroutine,
+// keeping the clients map free of data races without a mutex.
 type Hub struct {
-	clients 	map[*Client]bool
-	register	chan *Client
-	unregister	chan *Client
+	clients    map[*Client]bool
+	register   chan *Client
+	unregister chan *Client
 
-	OnConnect 	chan *Client
-	OnDisconnect chan *Client 
+	// Buffered so Hub.Run() never blocks while the consumer goroutines are busy.
+	OnConnect    chan *Client
+	OnDisconnect chan *Client
 
 	log *logger.Logger
 }
 
-
-func NewHub(log *logger.Logger) *Hub{
+func NewHub(log *logger.Logger) *Hub {
 	return &Hub{
-		clients: 	make(map[*Client]bool),	//A map where keys are pointers to Client objects
-		register:	make(chan *Client), //A channel used to signal a new client has connected and added to the hub
-		unregister:	make(chan *Client),	//A channel used to signal a new client has disconnected and should be removed from hub
-		OnConnect:  make(chan *Client),
-		OnDisconnect: make(chan *Client),
-		log:		 log,
+		clients:      make(map[*Client]bool),
+		register:     make(chan *Client),
+		unregister:   make(chan *Client),
+		OnConnect:    make(chan *Client, 64),
+		OnDisconnect: make(chan *Client, 64),
+		log:          log,
 	}
 }
 
-
-func (h *Hub) Run(){
-	//AN Infinite loop that waits for communication on the channels
+func (h *Hub) Run() {
 	for {
 		select {
-		
-		//Case when client is received through the register channel
 		case client := <-h.register:
 			h.clients[client] = true
+			metrics.IncConnections()
 			h.log.Info("[WS] client connected", "active", len(h.clients))
 			h.OnConnect <- client
-		
 
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
+				metrics.DecConnections()
 				h.log.Info("[WS] client disconnected", "active", len(h.clients))
 				h.OnDisconnect <- client
 			}
-			
 		}
 	}
 }
