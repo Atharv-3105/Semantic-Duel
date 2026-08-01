@@ -1,43 +1,77 @@
-// import {useEffect, useRef} from "react";
 import { useGameSocket } from "./hooks/useGameSocket";
 import { WaitingScreen } from "./components/WaitingScreen";
-import { GameHeader } from "./components/GameHeader";
-import { WordInput } from "./components/WordInput";
-import { Scoreboard } from "./components/Scoreboard";
+import { GameArena } from "./components/GameArena";
 import { GameOverScreen } from "./components/GameOverScreen";
 import { DisconnectedScreen } from "./components/DisconnectedScreen";
+import { ConnectingScreen } from "./components/ConnectingScreen";
+import "./App.css";
 
 function App() {
-  const {phase, target, scores, winner, waitingMessage, secondsLeft, submitWord, reconnect, connected} = useGameSocket();
-  // const socketRef  = useRef<WebSocket | null>(null);
+  const {
+    phase,
+    target,
+    scores,
+    winner,
+    waitingMessage,
+    secondsLeft,
+    duration,
+    submitWord,
+    reconnect,
+    connected,
+  } = useGameSocket();
 
   return (
-    <div style={{padding:"32", fontFamily:"sans-serif", maxWidth: 600}}>
-      <h1>Semantic-Duel</h1>
+    <div className="app-container">
+      {/* Ambient background effects */}
+      <div className="ambient-orb ambient-orb--cyan" />
+      <div className="ambient-orb ambient-orb--purple" />
 
-      <p><strong>Phase:</strong>{phase}</p>
-      <p style={{opacity: 0.6}}>Status: {connected ? "Connected" : "Disconnected"}</p>
+      {/* Header */}
+      <header className="app-header">
+        <h1 className="game-logo">
+          <span className="logo-icon">⚔️</span>
+          Semantic Duel
+        </h1>
+        <div className="header-meta">
+          <span className={`status-badge ${connected ? "status-badge--connected" : "status-badge--disconnected"}`}>
+            <span className="status-dot" />
+            {connected ? "Connected" : "Disconnected"}
+          </span>
+        </div>
+      </header>
 
-      {phase === "WAITING" && (
-            <WaitingScreen message={waitingMessage} />
-      )}
+      {/* Phase Content */}
+      <main className="app-main">
+        {phase === "CONNECTING" && <ConnectingScreen />}
 
-      {phase === "IN_GAME" && target && (
-        <>
-          <GameHeader target = {target} secondsLeft={secondsLeft} />
-          <WordInput disabled = {!connected || phase !== "IN_GAME"} onSubmit={submitWord}/>
-          <Scoreboard scores = {scores} />
-        </>
-      )}
+        {phase === "WAITING" && (
+          <WaitingScreen message={waitingMessage} />
+        )}
 
-      {phase === "GAME_OVER" && (
-        <GameOverScreen winner = {winner} scores = {scores} />
-      )}
+        {phase === "IN_GAME" && target && (
+          <GameArena
+            target={target}
+            secondsLeft={secondsLeft}
+            duration={duration}
+            scores={scores}
+            disabled={!connected || phase !== "IN_GAME"}
+            onSubmitWord={submitWord}
+          />
+        )}
 
+        {phase === "GAME_OVER" && (
+          <GameOverScreen winner={winner} scores={scores} />
+        )}
 
-      {phase === "DISCONNECTED" && (
+        {phase === "DISCONNECTED" && (
           <DisconnectedScreen onReconnect={reconnect} />
-      )}
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="app-footer">
+        <p>Submit words semantically related to the target — best score wins!</p>
+      </footer>
     </div>
   );
 }
